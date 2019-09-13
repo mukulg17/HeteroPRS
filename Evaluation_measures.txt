@@ -1,3 +1,6 @@
+######functions to evaluate the performance of recommendation algorithms##############
+######recommendmat contains the top-10 personalized recommended items#################
+######testmat contains the actual experienced items by users#########################
 ################ MAP@K measure ############################
 map_k <- function(recommendmat,testmat)
 {

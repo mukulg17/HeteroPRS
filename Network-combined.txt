@@ -1,0 +1,150 @@
+#################generation of personalized recommendation using HeteroPRS#############
+rm(list=ls())
+load("F:/HeteRS/dataset-1/moviedata.RData")  #####file containing meta-information related to movie###########
+source("F:/HeteRS/dataset-1/evaluation_measures.txt")
+load("F:/HeteRS/dataset-1/data5.RData") #################file containing training data#################
+load("F:/HeteRS/dataset-1/userpathweight5.RData") #################file containing personalized weights for meta-paths##########
+train <- train1
+test <- test1
+userpathweight <- userpathweight1
+##############
+sim <- function(mat)
+{
+  simmat <- matrix(0,nrow(mat),ncol(mat))
+  rownames(simmat) <- rownames(mat)
+  colnames(simmat) <- colnames(mat)
+  dega <- vector("numeric",nrow(mat))
+  names(dega) <- rownames(mat)
+  degb <- vector("numeric",ncol(mat))
+  names(degb) <- colnames(mat)
+  for(i in 1:length(dega))
+  {
+    dega[i] <- length(which(mat[i,]>0))
+  }
+   for(i in 1:length(degb))
+  {
+    degb[i] <- length(which(mat[,i]>0))
+  }
+  for(i in 1:nrow(simmat))
+  {
+    k <- which(mat[i,]>0)
+    if(length(k)>0)
+    {
+      for(j in k)
+      {
+        simmat[i,j] <- (mat[i,j]*((1/dega[i])+(1/degb[j])))/((sum(mat[i,])/dega[i])+(sum(mat[,j])/degb[j]))
+      }
+    }
+  }
+return(simmat)
+}
+#############
+pop <- vector("numeric",ncol(train))
+names(pop) <- colnames(train)
+for(i in colnames(train))
+{
+  pop[i] <- sum(train[,i]) 
+}
+###
+finaltrain <- train
+movies <- colnames(finaltrain)
+###############
+wum <- finaltrain
+############### U-MGM (P1) ########
+wmg <- mgenre[movies,]
+wgm <- t(wmg)
+wmgm <- wmg %*% wgm
+mat1 <- wum %*% wmgm
+usermoviesim1 <- sim(mat1)
+########## U-MDM (P2) #######
+wmd <- mdirector[movies,]
+wdm <- t(wmd)
+wmdm <- wmd %*% wdm
+mat2 <- wum %*% wmdm
+usermoviesim2 <- sim(mat2)
+########## U-MAM (P3) #######
+wma <- mactor[movies,]
+wam <- t(wma)
+wmam <- wma %*% wam
+mat3 <- wum %*% wmam
+usermoviesim3 <- sim(mat3)
+########## U-MGMAM (P4) ######
+wmgmam <- wmgm %*% wmam
+mat4 <- wum %*% wmgmam
+usermoviesim4 <- sim(mat4)
+########## U-MAMGM (P5) ######
+wmamgm <- wmam %*% wmgm
+mat5 <- wum %*% wmamgm
+usermoviesim5 <- sim(mat5)
+########## U-MDMAM (P6) ######
+wmdmam <- wmdm %*% wmam
+mat6 <- wum %*% wmdmam
+usermoviesim6 <- sim(mat6)
+########## U-MAMDM (P7) ######
+wmamdm <- wmam %*% wmdm
+mat7 <- wum %*% wmamdm
+usermoviesim7 <- sim(mat7)
+########## U-MGMDM (P8) ######
+wmgmdm <- wmgm %*% wmdm
+mat8 <- wum %*% wmgmdm
+usermoviesim8 <- sim(mat8)
+########## U-MDMGM (P9) ######
+wmdmgm <- wmdm %*% wmgm
+mat9 <- wum %*% wmdmgm
+usermoviesim9 <- sim(mat9)
+##########
+fsim <- finaltrain
+fsim[,] <- 0
+for(i in rownames(fsim))
+{
+  ############
+  w1 <- userpathweight[i,1]
+  w2 <- userpathweight[i,2]
+  w3 <- userpathweight[i,3]
+  w4 <- userpathweight[i,4]
+  w5 <- userpathweight[i,5]
+  w6 <- userpathweight[i,6]
+  w7 <- userpathweight[i,7]
+  w8 <- userpathweight[i,8]
+  w9 <- userpathweight[i,9]
+  ############
+  #w1 <- 0
+  #w2 <- 0
+  #w3 <- 0
+  #w4 <- 0
+  #w5 <- 0
+  #w6 <- 1
+  ############
+  mov1 <- usermoviesim1[i,]
+  mov2 <- usermoviesim2[i,]
+  mov3 <- usermoviesim3[i,]
+  mov4 <- usermoviesim4[i,]
+  mov5 <- usermoviesim5[i,]
+  mov6 <- usermoviesim6[i,]
+  mov7 <- usermoviesim7[i,]
+  mov8 <- usermoviesim8[i,]
+  mov9 <- usermoviesim9[i,]
+  fsim[i,] <- (w1*mov1) + (w2*mov2) + (w3*mov3) + (w4*mov4) + (w5*mov5) + (w6*mov6) + (w7*mov7) + (w8*mov8) + (w9*mov9)
+ }
+####
+num <- 10
+recommend <- matrix(0,nrow(test),num)
+rownames(recommend) <- rownames(test)
+colnames(recommend) <- 1:num
+for(i in rownames(recommend))
+{
+  unexpmovset <- setdiff(colnames(finaltrain),names(which(finaltrain[i,]>0)))
+  mov <- fsim[i,unexpmovset]*pop[unexpmovset]
+  recommend[i,] <- names(sort(mov,decreasing=TRUE))[1:num]
+}
+############
+maprecision <- map_k(recommend,test)
+cat("Mean Average Precision @ K (MAP@K)\n")
+print(maprecision)
+garhr <- arhr_k(recommend,test)
+cat("Global Average Reciprocal Hit Rate @ K (gARHR@K) or MRR@K\n")
+print(garhr)
+recall <- recall_k(recommend,test)
+cat("Recall @ K\n")
+print(recall)
+##############

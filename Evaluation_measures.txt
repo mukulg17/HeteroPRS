@@ -1,0 +1,100 @@
+################ MAP@K measure ############################
+map_k <- function(recommendmat,testmat)
+{
+  recommend <- recommendmat
+  test <- testmat
+  num <- ncol(recommend)
+  hitmat <- matrix(0,nrow(recommend),num)
+  rownames(hitmat) <- rownames(recommend)
+  colnames(hitmat) <- 1:num
+  for(i in rownames(recommend))
+  {
+    testitems <- names(which(test[i,]>0))
+    hititems <- intersect(recommend[i,],testitems)
+    for(j in hititems)
+    {
+      pos <- which(recommend[i,]==j)
+      hitmat[i,pos] <- 1
+    }
+    index <- which(hitmat[i,]>0)
+    pval <- hitmat[i,]
+    for(j in index)
+    {
+      pval[j] <- sum(hitmat[i,1:j])/j
+    }
+    hitmat[i,] <- pval
+  }
+  ap_k <- hitmat
+  ap_k[,] <- 0
+  for(i in rownames(ap_k))
+  {
+    for(j in 1:num)
+    {
+      deno <- length(which(hitmat[i,1:j]>0))
+      if(deno>0)
+      {
+        numer <- sum(hitmat[i,1:j])
+        ap_k[i,j] <- numer/deno
+      }
+    } 
+  }
+  map_val <- colSums(ap_k)/nrow(ap_k)
+  return(map_val)
+}
+##################### generalized ARHR@K measure ###########################
+arhr_k <- function(recommendmat,testmat)
+{
+  test <- testmat
+  recommend <- recommendmat
+  num <- ncol(recommend)
+  hitmat <- matrix(0,nrow(recommend),num)
+  rownames(hitmat) <- rownames(recommend)
+  colnames(hitmat) <- 1:num
+  for(i in rownames(recommend))
+  {
+    testitems <- names(which(test[i,]>0))
+    hititems <- intersect(recommend[i,],testitems)
+    for(j in hititems)
+    {
+      pos <- which(recommend[i,]==j)
+      hitmat[i,pos] <- 1
+    }
+  }
+  for(i in 1:num)
+  {
+    hitmat[,i] <- hitmat[,i]/i
+  }    
+  arhrmat <- hitmat
+  arhrmat[,] <- 0
+  for(i in rownames(arhrmat))
+  {
+    for(j in 1:num)
+    {
+      arhrmat[i,j] <- sum(hitmat[i,1:j])
+    }
+  }
+  arhr_val <- colSums(arhrmat)/nrow(arhrmat)
+  return(arhr_val)
+}
+############# recall@N measure #################
+recall_k <- function(recommendmat,testmat)
+{
+  num <- ncol(recommendmat)
+  recall_mat <- matrix(0,nrow(recommendmat),num)
+  rownames(recall_mat) <- rownames(recommendmat)
+  colnames(recall_mat) <- 1:num
+  for(i in rownames(recall_mat))
+  {
+    rel <- names(which(testmat[i,]>0))
+    if(length(rel)>0)
+    {
+    for(j in 1:num)
+    {
+      recall_mat[i,j] <- length(intersect(recommendmat[i,1:j],rel))/length(rel)
+    }
+    } 
+  }
+  recall_val <- colSums(recall_mat)/nrow(recall_mat)
+  return(recall_val)
+}
+################################################

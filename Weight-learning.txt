@@ -1,0 +1,145 @@
+##############personalized weight learning for HeteroPRS#############
+rm(list=ls())
+load("C:/HeteRS/dataset-1/data1.RData") ###############path for training data################
+load("C:/HeteRS/dataset-1/moviedata.RData")  ###########path for meta-information related to movies##########
+train <- train1  ############training data file##########################
+##############
+sim <- function(mat)
+{
+  simmat <- matrix(0,nrow(mat),ncol(mat))
+  rownames(simmat) <- rownames(mat)
+  colnames(simmat) <- colnames(mat)
+  dega <- vector("numeric",nrow(mat))
+  names(dega) <- rownames(mat)
+  degb <- vector("numeric",ncol(mat))
+  names(degb) <- colnames(mat)
+  for(i in 1:length(dega))
+  {
+    dega[i] <- length(which(mat[i,]>0))
+  }
+   for(i in 1:length(degb))
+  {
+    degb[i] <- length(which(mat[,i]>0))
+  }
+  for(i in 1:nrow(simmat))
+  {
+    k <- which(mat[i,]>0)
+    if(length(k)>0)
+    {
+      for(j in k)
+      {
+        simmat[i,j] <- (mat[i,j]*((1/dega[i])+(1/degb[j])))/((sum(mat[i,])/dega[i])+(sum(mat[,j])/degb[j]))
+      }
+    }
+  }
+return(simmat)
+}
+tansimmat <- function(simmat1,simmat2)
+{
+  tansim <- matrix(0,nrow(simmat1),nrow(simmat1))
+  rownames(tansim) <- rownames(simmat1)
+  colnames(tansim) <- rownames(simmat1)
+  for(i in 1:(nrow(simmat1)-1))
+  {
+    for(j in (1+i):nrow(simmat1))
+    {
+      k <- sum(simmat1[i,]*simmat2[j,])
+      if(k>0)
+      {
+        tansim[i,j] <- k/sum(simmat1[i,]^2+simmat2[j,]^2-simmat1[i,]*simmat2[j,])
+        tansim[j,i] <- tansim[i,j]
+      }
+    }
+  }
+return(tansim)
+}
+#############
+finaltrain <- train
+movies <- colnames(finaltrain)
+############### MGM - P1 ##############
+wmg <- mgenre[movies,]
+mat <- sim(wmg)
+moviesim1 <- tansimmat(mat,mat)
+############ MDM - P2 #################
+wmd <- mdirector[movies,]
+mat <- sim(wmd)
+moviesim2 <- tansimmat(mat,mat)
+############ MAM - P3 ############
+wma <- mactor[movies,]
+mat <- sim(wma)
+moviesim3 <- tansimmat(mat,mat)
+########## MGMAM - P4 ##########
+moviesim4 <- tansimmat(moviesim1,moviesim3)
+########## MAMGM - P5 ##########
+moviesim5 <- tansimmat(moviesim3,moviesim1)
+########### MDMAM - P6 ########
+moviesim6 <- tansimmat(moviesim2,moviesim3)
+########### MAMDM - P7 ########
+moviesim7 <- tansimmat(moviesim3,moviesim2)
+########### MGMDM - P8 ###########
+moviesim8 <- tansimmat(moviesim1,moviesim2)
+########### MDMGM - P9 ###########
+moviesim9 <- tansimmat(moviesim2,moviesim1)
+########################################
+alpha <- 1
+colmn <- c("MGM","MDM","MAM","MGMAM","MAMGM","MDMAM","MAMDM","MGMDM","MDMGM")
+pw <- matrix(0,nrow(train),length(colmn))
+rownames(pw) <- rownames(train)
+colnames(pw) <- colmn
+###tic()
+for(i in rownames(train))
+{
+  expmov <- names(which(train[i,]>0))
+  unm <- length(expmov)
+  tm <- length(movies)
+  #######################
+  p1 <- sum(moviesim1[expmov,expmov])/(unm^2-unm)
+  r1 <- sum(moviesim1)/(tm^2-tm)
+  imp1 <- 1/((alpha/p1)+((1-alpha)/r1))
+  ######
+  p2 <- sum(moviesim2[expmov,expmov])/(unm^2-unm)
+  r2 <- sum(moviesim2)/(tm^2-tm)
+  imp2 <- 1/((alpha/p2)+((1-alpha)/r2))
+  #####
+  p3 <- sum(moviesim3[expmov,expmov])/(unm^2-unm)
+  r3 <- sum(moviesim3)/(tm^2-tm)
+  imp3 <- 1/((alpha/p3)+((1-alpha)/r3))
+  #####
+  p4 <- sum(moviesim4[expmov,expmov])/(unm^2-unm)
+  r4 <- sum(moviesim4)/(tm^2-tm)
+  imp4 <- 1/((alpha/p4)+((1-alpha)/r4))
+  #####
+  p5 <- sum(moviesim5[expmov,expmov])/(unm^2-unm)
+  r5 <- sum(moviesim5)/(tm^2-tm)
+  imp5 <- 1/((alpha/p5)+((1-alpha)/r5))
+  ######
+  p6 <- sum(moviesim6[expmov,expmov])/(unm^2-unm)
+  r6 <- sum(moviesim6)/(tm^2-tm)
+  imp6 <- 1/((alpha/p6)+((1-alpha)/r6))
+  ######
+  p7 <- sum(moviesim7[expmov,expmov])/(unm^2-unm)
+  r7 <- sum(moviesim7)/(tm^2-tm)
+  imp7 <- 1/((alpha/p7)+((1-alpha)/r7))
+  ######
+  p8 <- sum(moviesim8[expmov,expmov])/(unm^2-unm)
+  r8 <- sum(moviesim8)/(tm^2-tm)
+  imp8 <- 1/((alpha/p8)+((1-alpha)/r8))
+  ######
+  p9 <- sum(moviesim9[expmov,expmov])/(unm^2-unm)
+  r9 <- sum(moviesim9)/(tm^2-tm)
+  imp9 <- 1/((alpha/p9)+((1-alpha)/r9))
+  ######
+  val <- imp1+imp2+imp3+imp4+imp5+imp6+imp7+imp8+imp9
+  w1 <- imp1/val
+  w2 <- imp2/val
+  w3 <- imp3/val
+  w4 <- imp4/val
+  w5 <- imp5/val
+  w6 <- imp6/val
+  w7 <- imp7/val
+  w8 <- imp8/val
+  w9 <- imp9/val
+  pw[i,colmn] <- c(w1,w2,w3,w4,w5,w6,w7,w8,w9)
+}
+##toc()
+userpathweight1 <- pw

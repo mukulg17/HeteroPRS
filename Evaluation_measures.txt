@@ -1,49 +1,6 @@
 ######functions to evaluate the performance of recommendation algorithms##############
 ######recommendmat contains the top-10 personalized recommended items#################
 ######testmat contains the actual experienced items by users#########################
-################ MAP@K measure ############################
-map_k <- function(recommendmat,testmat)
-{
-  recommend <- recommendmat
-  test <- testmat
-  num <- ncol(recommend)
-  hitmat <- matrix(0,nrow(recommend),num)
-  rownames(hitmat) <- rownames(recommend)
-  colnames(hitmat) <- 1:num
-  for(i in rownames(recommend))
-  {
-    testitems <- names(which(test[i,]>0))
-    hititems <- intersect(recommend[i,],testitems)
-    for(j in hititems)
-    {
-      pos <- which(recommend[i,]==j)
-      hitmat[i,pos] <- 1
-    }
-    index <- which(hitmat[i,]>0)
-    pval <- hitmat[i,]
-    for(j in index)
-    {
-      pval[j] <- sum(hitmat[i,1:j])/j
-    }
-    hitmat[i,] <- pval
-  }
-  ap_k <- hitmat
-  ap_k[,] <- 0
-  for(i in rownames(ap_k))
-  {
-    for(j in 1:num)
-    {
-      deno <- length(which(hitmat[i,1:j]>0))
-      if(deno>0)
-      {
-        numer <- sum(hitmat[i,1:j])
-        ap_k[i,j] <- numer/deno
-      }
-    } 
-  }
-  map_val <- colSums(ap_k)/nrow(ap_k)
-  return(map_val)
-}
 ##################### generalized ARHR@K measure ###########################
 arhr_k <- function(recommendmat,testmat)
 {
